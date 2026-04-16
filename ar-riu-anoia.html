@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AR Riu Anoia – Domini Públic Hidràulic</title>
+
+  <!-- A-Frame i AR.js -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #0a1628;
+      color: #e8f4f8;
+      overflow: hidden;
+    }
+
+    /* ---- PANTALLA D'INICI ---- */
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(160deg, #0a1628 0%, #0d2540 50%, #0a1e35 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .splash-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1.5rem;
+    }
+
+    .splash-wave {
+      animation: wave-bob 3s ease-in-out infinite;
+    }
+
+    @keyframes wave-bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    #splash h1 {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: #b8dff0;
+      margin-bottom: 0.4rem;
+    }
+
+    #splash h2 {
+      font-size: clamp(0.85rem, 3vw, 1rem);
+      font-weight: 400;
+      color: #5a9ab5;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    .info-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(100,180,220,0.2);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      max-width: 380px;
+      width: 100%;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .info-card p {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #8bbdd4;
+    }
+
+    .info-card strong {
+      color: #b8dff0;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(30,120,180,0.3);
+      border: 1px solid rgba(100,180,220,0.4);
+      border-radius: 20px;
+      padding: 0.25rem 0.8rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: #7ac8e8;
+      margin-bottom: 1.5rem;
+    }
+
+    #btn-start {
+      background: linear-gradient(135deg, #1a6fa0, #0d4d75);
+      border: 1px solid rgba(100,200,240,0.4);
+      border-radius: 50px;
+      color: #c8eaf8;
+      font-size: 1rem;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      padding: 0.9rem 2.5rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 20px rgba(10,100,160,0.4);
+    }
+
+    #btn-start:hover, #btn-start:active {
+      background: linear-gradient(135deg, #2080b8, #1a5d8a);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(10,100,160,0.6);
+    }
+
+    .disclaimer {
+      margin-top: 1.5rem;
+      font-size: 0.72rem;
+      color: #3a6a80;
+      max-width: 340px;
+      line-height: 1.5;
+    }
+
+    /* ---- CAPÇALERA AR ---- */
+    #ar-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(5,18,40,0.9) 0%, transparent 100%);
+      padding: 1rem 1.2rem 2rem;
+      z-index: 100;
+      display: none;
+      pointer-events: none;
+    }
+
+    #ar-header h3 {
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7ac8e8;
+      font-weight: 400;
+    }
+
+    #ar-header p {
+      font-size: 0.72rem;
+      color: rgba(200,234,248,0.6);
+      margin-top: 0.2rem;
+    }
+
+    /* ---- GPS STATUS ---- */
+    #gps-status {
+      position: fixed;
+      top: 1rem; right: 1rem;
+      background: rgba(5,18,40,0.85);
+      border: 1px solid rgba(100,180,220,0.25);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.72rem;
+      color: #5a9ab5;
+      z-index: 200;
+      display: none;
+    }
+
+    #gps-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #e55;
+      margin-right: 5px;
+      vertical-align: middle;
+      animation: pulse-red 1s infinite;
+    }
+
+    #gps-dot.ok {
+      background: #4c8;
+      animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-red   { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* ---- LLEGENDA ---- */
+    #legend {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(0deg, rgba(5,18,40,0.92) 0%, transparent 100%);
+      padding: 2rem 1.2rem 1.2rem;
+      z-index: 100;
+      display: none;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .legend-line {
+      width: 28px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .legend-label {
+      font-size: 0.78rem;
+      color: #8bbdd4;
+    }
+
+    /* ---- BOTÓ TANCAR ---- */
+    #btn-close {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.2rem;
+      background: rgba(5,18,40,0.85);
+      border: 1px solid rgba(100,180,220,0.3);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      color: #7ac8e8;
+      font-size: 1.1rem;
+      cursor: pointer;
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ---- MISSATGE GPS ---- */
+    #gps-msg {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(5,18,40,0.93);
+      border: 1px solid rgba(100,180,220,0.3);
+      border-radius: 14px;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      z-index: 500;
+      display: none;
+      max-width: 300px;
+    }
+
+    #gps-msg p { font-size: 0.88rem; color: #8bbdd4; line-height: 1.6; }
+    #gps-msg .big { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ---- OVERLAY DISTÀNCIA ---- */
+    #distance-panel {
+      position: fixed;
+      top: 4.5rem; left: 1rem;
+      background: rgba(5,18,40,0.85);
+      border: 1px solid rgba(100,180,220,0.25);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      font-size: 0.78rem;
+      color: #7ac8e8;
+      z-index: 200;
+      display: none;
+      line-height: 1.7;
+    }
+
+    #distance-panel strong {
+      color: #b8dff0;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ PANTALLA D'INICI ============ -->
+<div id="splash">
+
+  <!-- Icona SVG riu -->
+  <svg class="splash-logo splash-wave" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="40" r="38" stroke="#1a6fa0" stroke-width="1.5" stroke-opacity="0.4"/>
+    <path d="M14 50 Q22 42 30 50 Q38 58 46 50 Q54 42 62 50 Q66 54 70 50" stroke="#4aabcc" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <path d="M14 40 Q22 32 30 40 Q38 48 46 40 Q54 32 62 40 Q66 44 70 40" stroke="#2a8bac" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M18 60 Q26 53 34 60 Q42 67 50 60 Q58 53 64 60" stroke="#1a6fa0" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+    <!-- Icona GPS -->
+    <circle cx="40" cy="27" r="5" stroke="#7ac8e8" stroke-width="1.5" fill="none"/>
+    <path d="M40 32 L40 38" stroke="#7ac8e8" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+
+  <h1>Riu Anoia · Igualada</h1>
+  <h2>Domini Públic Hidràulic</h2>
+
+  <span class="badge">📍 Realitat augmentada · GPS</span>
+
+  <div class="info-card">
+    <p>
+      Aquesta eina mostra <strong>sobre la càmera del teu mòbil</strong> els límits del Domini Públic Hidràulic (DPH) al pas del riu Anoia per Igualada.
+      <br><br>
+      El <strong>DPH inclou el llit del riu</strong> i les riberes, amb una franja de protecció de 5 metres. Apropar-s'hi requereix autorització de la Confederació Hidrogràfica de l'Ebre (CHE).
+    </p>
+  </div>
+
+  <button id="btn-start" onclick="startAR()">
+    🎥 Activar càmera AR
+  </button>
+
+  <p class="disclaimer">
+    ⚠️ Ús informatiu i divulgatiu. La precisió GPS dels mòbils pot variar entre 5 i 15 metres. Per a ús tècnic o legal cal cartografia oficial de la CHE.
+  </p>
+</div>
+
+<!-- ============ UI AR ============ -->
+<div id="ar-header">
+  <h3>Domini Públic Hidràulic · Riu Anoia</h3>
+  <p>Apunta la càmera cap al riu</p>
+</div>
+
+<div id="gps-status">
+  <span id="gps-dot"></span>
+  <span id="gps-text">Cercant GPS...</span>
+</div>
+
+<div id="distance-panel">
+  Distància al límit DPH:<br>
+  <strong id="dist-value">—</strong> <span id="dist-unit">m</span><br>
+  <span id="dist-status" style="font-size:0.7rem;color:#5a9ab5"></span>
+</div>
+
+<div id="legend">
+  <div class="legend-row">
+    <div class="legend-line" style="background:#ff6b35;"></div>
+    <span class="legend-label">Límit Domini Públic Hidràulic</span>
+  </div>
+  <div class="legend-row">
+    <div class="legend-line" style="background:rgba(30,120,255,0.6);height:8px;"></div>
+    <span class="legend-label">Zona DPH (llit + riberes)</span>
+  </div>
+  <div class="legend-row">
+    <div class="legend-line" style="background:#ffcc00;border:1px dashed #ffcc00;background:transparent;border-top:2px dashed #ffcc00;height:0;"></div>
+    <span class="legend-label">Zona de policia (100 m)</span>
+  </div>
+</div>
+
+<button id="btn-close" onclick="closeSplash()">✕</button>
+
+<div id="gps-msg">
+  <div class="big">📡</div>
+  <p>Esperant senyal GPS...<br>Assegura't d'estar a l'aire lliure i que la ubicació estigui activada.</p>
+</div>
+
+<!-- ============ ESCENA A-FRAME AR ============ -->
+<a-scene
+  id="ar-scene"
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; trackingMethod: best;"
+  renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
+  embedded
+  style="display:none; position:fixed; inset:0; z-index:50;"
+>
+
+  <a-camera
+    gps-new-camera="gpsMinDistance: 5; positionMinAccuracy: 100"
+    rotation-reader
+  ></a-camera>
+
+  <!--
+    =====================================================================
+    COORDENADES DEL DOMINI PÚBLIC HIDRÀULIC – RIU ANOIA · IGUALADA
+    =====================================================================
+    Aquestes coordenades són aproximades basades en la delimitació del DPH
+    al pas del riu Anoia per Igualada (tram urbà, c/ Sant Agustí - pont nou).
+
+    En un projecte real s'haurien d'obtenir de:
+    - Visor SNCZI (Sistema Nacional de Cartografia de Zones Inundables)
+    - IDE de l'Agència Catalana de l'Aigua
+    - Fita del DPH de la CHE
+
+    Coordenades en WGS84 (lat/lon). El tram cobert és ~600m.
+    =====================================================================
+  -->
+
+  <!-- MARGE ESQUERRE del DPH (vorera nord) – línia taronja -->
+  <!-- Punt A → B → C → D → E (aigüesavall) -->
+  <a-entity
+    gps-new-entity-place="latitude: 41.57520; longitude: 1.61340"
+    geometry="primitive: box; width: 2; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.9"
+    scale="1 1 1"
+    rotation="0 0 0"
+  ></a-entity>
+
+  <!-- Línia marge esquerre DPH – segments visuals com a caixes allargades -->
+  <a-entity
+    gps-new-entity-place="latitude: 41.57498; longitude: 1.61280"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57470; longitude: 1.61210"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57445; longitude: 1.61140"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57418; longitude: 1.61070"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <!-- MARGE DRET del DPH (vorera sud) -->
+  <a-entity
+    gps-new-entity-place="latitude: 41.57490; longitude: 1.61340"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.9"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57468; longitude: 1.61275"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57440; longitude: 1.61205"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57415; longitude: 1.61135"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57388; longitude: 1.61065"
+    geometry="primitive: box; width: 1.5; height: 2; depth: 0.1"
+    material="color: #ff6b35; opacity: 0.85"
+  ></a-entity>
+
+  <!-- ETIQUETES informatives flotants al llarg del riu -->
+  <a-entity
+    gps-new-entity-place="latitude: 41.57498; longitude: 1.61310"
+    look-at="[gps-new-camera]"
+    scale="15 15 15"
+  >
+    <a-text
+      value="⬛ Límit DPH\nDomini Públic Hidràulic"
+      align="center"
+      color="#ff6b35"
+      width="2"
+      font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+    ></a-text>
+  </a-entity>
+
+  <a-entity
+    gps-new-entity-place="latitude: 41.57455; longitude: 1.61200"
+    look-at="[gps-new-camera]"
+    scale="12 12 12"
+  >
+    <a-text
+      value="🌊 Riu Anoia\nZona protegida CHE"
+      align="center"
+      color="#4aabcc"
+      width="2.5"
+      font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+    ></a-text>
+  </a-entity>
+
+  <!-- ZONA POLICIA (franja 100m, representada amb balises grogues) -->
+  <a-entity
+    gps-new-entity-place="latitude: 41.57610; longitude: 1.61300"
+    look-at="[gps-new-camera]"
+    scale="10 10 10"
+  >
+    <a-text
+      value="⚠️ Zona de policia\n100m del DPH"
+      align="center"
+      color="#ffcc00"
+      width="3"
+      font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+    ></a-text>
+  </a-entity>
+
+</a-scene>
+
+
+<script>
+  // ============================================================
+  // COORDENADES DEL LÍMIT DPH (simplificades, marge esquerre)
+  // Usades per calcular la distància de l'usuari al límit
+  // ============================================================
+  const DPH_BOUNDARY = [
+    { lat: 41.57520, lon: 1.61340 },
+    { lat: 41.57498, lon: 1.61280 },
+    { lat: 41.57470, lon: 1.61210 },
+    { lat: 41.57445, lon: 1.61140 },
+    { lat: 41.57418, lon: 1.61070 },
+    // marge dret
+    { lat: 41.57490, lon: 1.61340 },
+    { lat: 41.57468, lon: 1.61275 },
+    { lat: 41.57440, lon: 1.61205 },
+    { lat: 41.57415, lon: 1.61135 },
+    { lat: 41.57388, lon: 1.61065 },
+  ];
+
+  // Distància haversine entre dos punts GPS (en metres)
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // Distància mínima de la posició actual al límit DPH
+  function distanceToBoundary(lat, lon) {
+    return Math.min(...DPH_BOUNDARY.map(p => haversine(lat, lon, p.lat, p.lon)));
+  }
+
+  let gpsWatcher = null;
+  let arStarted = false;
+
+  function startAR() {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('ar-scene').style.display = 'block';
+    document.getElementById('ar-header').style.display = 'block';
+    document.getElementById('gps-status').style.display = 'block';
+    document.getElementById('legend').style.display = 'block';
+    document.getElementById('btn-close').style.display = 'flex';
+    document.getElementById('distance-panel').style.display = 'block';
+    document.getElementById('gps-msg').style.display = 'block';
+
+    if (!navigator.geolocation) {
+      document.getElementById('gps-text').textContent = 'GPS no disponible';
+      return;
+    }
+
+    gpsWatcher = navigator.geolocation.watchPosition(
+      pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const dot = document.getElementById('gps-dot');
+        const txt = document.getElementById('gps-text');
+
+        if (accuracy < 30) {
+          dot.className = 'ok';
+          txt.textContent = `GPS ±${Math.round(accuracy)}m`;
+          document.getElementById('gps-msg').style.display = 'none';
+        } else {
+          dot.className = '';
+          txt.textContent = `GPS feble ±${Math.round(accuracy)}m`;
+        }
+
+        // Calcular distància al límit DPH
+        const dist = distanceToBoundary(latitude, longitude);
+        const distVal = document.getElementById('dist-value');
+        const distStatus = document.getElementById('dist-status');
+        const distUnit = document.getElementById('dist-unit');
+
+        if (dist < 1000) {
+          distVal.textContent = Math.round(dist);
+          distUnit.textContent = 'm';
+        } else {
+          distVal.textContent = (dist/1000).toFixed(1);
+          distUnit.textContent = 'km';
+        }
+
+        if (dist < 5) {
+          distStatus.textContent = '⚠️ Ets dins del DPH';
+          distStatus.style.color = '#ff6b35';
+        } else if (dist < 100) {
+          distStatus.textContent = '🔶 Zona de policia (100m)';
+          distStatus.style.color = '#ffcc00';
+        } else {
+          distStatus.textContent = '✅ Fora de la zona de protecció';
+          distStatus.style.color = '#4ac88a';
+        }
+      },
+      err => {
+        document.getElementById('gps-text').textContent = 'Error GPS';
+        console.warn('GPS error:', err);
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+    );
+  }
+
+  function closeSplash() {
+    if (gpsWatcher) navigator.geolocation.clearWatch(gpsWatcher);
+    document.getElementById('ar-scene').style.display = 'none';
+    document.getElementById('ar-header').style.display = 'none';
+    document.getElementById('gps-status').style.display = 'none';
+    document.getElementById('legend').style.display = 'none';
+    document.getElementById('btn-close').style.display = 'none';
+    document.getElementById('distance-panel').style.display = 'none';
+    document.getElementById('gps-msg').style.display = 'none';
+    document.getElementById('splash').style.display = 'flex';
+  }
+</script>
+
+</body>
+</html>
